@@ -1,4 +1,7 @@
+import random
+import socket
 import sys
+import time
 import grpc
 import scripts.portal_administrativo.protos.portal_administrativo_pb2 as pb2
 import scripts.portal_administrativo.protos.portal_administrativo_pb2_grpc as pb2_grpc
@@ -7,26 +10,36 @@ from scripts.portal_administrativo.utils.server_actions import ServerActions
 class ServerService(object):
 
     @staticmethod
-    def service(client, dicts):
-        def publish(topic, message):
-            result = client.publish(topic, 'PA/' + message)
-            status = result[0]
+    def service(dicts):
+        def __init__(self) -> None:
+            self.socket = __setReplica__()
 
-            if status == 0:
-                print(f'\nPublicada mensagem ({message}) no tópico ({topic})')
+        def __setReplica__():
+            num_socket = random.randint(10000,10002)
 
-            return status
+            try:
+                socketDB = socket.socket()
+                socketDB.settimeout(1)
 
+                socketDB.connect(('127.0.0.1', num_socket))
+
+                print(f'Server started, connected to DB server on port {num_socket}')
+
+            except:
+                print('Erro na criação das partições')
+                sys.exit()
+                
+            return socketDB
 
         class PortalAdministrativo(pb2_grpc.PortalAdministrativo):
             def NovoAluno(self, aluno, _):
-                return ServerActions.NovaEntidade(aluno, dicts, ServerActions.topic_alunos, 'NovoAluno', publish)
+                return ServerActions.NovaEntidade(__setReplica__(), aluno, dicts, ServerActions.topic_alunos, 'NovoAluno')
                 
             def EditaAluno(self, aluno, _):
-                return ServerActions.EditaEntidade(aluno, dicts, ServerActions.topic_alunos, 'EditaAluno', publish)
+                return ServerActions.EditaEntidade(aluno, dicts, ServerActions.topic_alunos, 'EditaAluno')
                 
             def RemoveAluno(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_alunos, 'RemoveAluno', publish)
+                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_alunos, 'RemoveAluno')
 
             def ObtemAluno(self, identificador, _):
                 return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemAluno')
@@ -37,13 +50,13 @@ class ServerService(object):
             # --------------------------------------------------------------
 
             def NovoProfessor(self, professor, _):
-                return ServerActions.NovaEntidade(professor, dicts, ServerActions.topic_professores, 'NovoProfessor', publish)
+                return ServerActions.NovaEntidade(professor, dicts, ServerActions.topic_professores, 'NovoProfessor')
                 
             def EditaProfessor(self, professor, _):
-                return ServerActions.EditaEntidade(professor, dicts, ServerActions.topic_professores, 'EditaProfessor', publish)
+                return ServerActions.EditaEntidade(professor, dicts, ServerActions.topic_professores, 'EditaProfessor')
                 
             def RemoveProfessor(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_professores, 'RemoveProfessor', publish)
+                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_professores, 'RemoveProfessor')
 
             def ObtemProfessor(self, identificador, _):
                 return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemProfessor')
@@ -54,13 +67,13 @@ class ServerService(object):
             # --------------------------------------------------------------
 
             def NovaDisciplina(self, disciplina, _):
-                return ServerActions.NovaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'NovaDisciplina', publish)
+                return ServerActions.NovaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'NovaDisciplina')
                 
             def EditaDisciplina(self, disciplina, _):
-                return ServerActions.EditaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'EditaDisciplina', publish)
+                return ServerActions.EditaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'EditaDisciplina')
                 
             def RemoveDisciplina(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_disciplinas, 'RemoveDisciplina', publish)
+                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_disciplinas, 'RemoveDisciplina')
 
             def ObtemDisciplina(self, identificador, _):
                 return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemDisciplina')

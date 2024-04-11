@@ -10,6 +10,10 @@ pip install -e .
 pip install grpcio-tools
 pip3 install "paho-mqtt<2.0.0"
 
+pip install plyvel
+pip install pysyncobj
+
+chmod +x db.sh
 chmod +x admin-client.sh
 chmod +x admin-server.sh
 chmod +x mat-client.sh
