@@ -10,27 +10,36 @@ def database_functions(replica, conn, addr):
     while True:
         data = conn.recv(2048)
         msg = data.decode()
+
         print(msg)
 
         if msg:
             response_msg = json.loads(msg)
             function_name = response_msg['function']
             key = response_msg['key']
-            value = response_msg['value']
+            value = response_msg['value'] if 'value' in response_msg else None
             
-        if function_name == 'insert':           
+        if msg and function_name == 'insert':           
             replica.insert_data(key, value)            
             resp = json.dumps({'msg': "Insert realizado com sucesso."})
 
-        if function_name == 'edit':           
+        if msg and function_name == 'edit':           
             replica.edit_data(key, value)            
             resp = json.dumps({'msg': "Edit realizado com sucesso."})
 
-        if function_name == 'delete':
+        if msg and function_name == 'delete':
             replica.delete_data(key)
             resp = json.dumps({'msg': "Delete realizado com sucesso."})
 
-        if function_name == 'read_students':
+        if msg and function_name == 'read':
+            response = replica.get_data(key)
+
+            if response != '':
+                response = json.loads(response)    
+            
+            resp = json.dumps({'data': response})
+
+        if msg and function_name == 'read_students':
             response = replica.get_all_students(key)
 
             if response != '':
@@ -38,7 +47,7 @@ def database_functions(replica, conn, addr):
             
             resp = json.dumps({'data': response})
         
-        if function_name == 'read_teachers':
+        if msg and function_name == 'read_teachers':
             response = replica.get_all_teachers(key)
 
             if response != '':
@@ -46,7 +55,7 @@ def database_functions(replica, conn, addr):
             
             resp = json.dumps({'data': response})
 
-        if function_name == 'read_disciplines':
+        if msg and function_name == 'read_disciplines':
             response = replica.get_all_disciplines(key)
 
             if response != '':
@@ -54,7 +63,8 @@ def database_functions(replica, conn, addr):
             
             resp = json.dumps({'data': response})
 
-        conn.send(resp.encode())
+        if msg:
+            conn.send(resp.encode())
 
 def run():
     if len(sys.argv) < 2:

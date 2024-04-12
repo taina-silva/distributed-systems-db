@@ -8,32 +8,27 @@ import scripts.portal_administrativo.protos.portal_administrativo_pb2_grpc as pb
 from scripts.portal_administrativo.utils.server_actions import ServerActions
 
 class ServerService(object):
-
     @staticmethod
     def service(dicts):
-        def __init__(self) -> None:
-            self.socket = __setReplica__()
+        num_socket = random.randint(10000,10002)
+        num_socket = 10001
 
-        def __setReplica__():
-            num_socket = random.randint(10000,10002)
+        try:
+            socketDB = socket.socket()
+            socketDB.settimeout(1)
 
-            try:
-                socketDB = socket.socket()
-                socketDB.settimeout(1)
+            socketDB.connect(('127.0.0.1', num_socket))
 
-                socketDB.connect(('127.0.0.1', num_socket))
+            print(f'Servidor iniciado, conectado ao servidor do na porta {num_socket}')
 
-                print(f'Server started, connected to DB server on port {num_socket}')
-
-            except:
-                print('Erro na criação das partições')
-                sys.exit()
-                
-            return socketDB
-
+        except:
+            print('Erro na criação das partições')
+            sys.exit()
+                    
+        
         class PortalAdministrativo(pb2_grpc.PortalAdministrativo):
             def NovoAluno(self, aluno, _):
-                return ServerActions.NovaEntidade(__setReplica__(), aluno, dicts, ServerActions.topic_alunos, 'NovoAluno')
+                return ServerActions.NovaEntidade(socketDB, aluno, dicts, ServerActions.topic_alunos, 'NovoAluno')
                 
             def EditaAluno(self, aluno, _):
                 return ServerActions.EditaEntidade(aluno, dicts, ServerActions.topic_alunos, 'EditaAluno')
@@ -42,7 +37,7 @@ class ServerService(object):
                 return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_alunos, 'RemoveAluno')
 
             def ObtemAluno(self, identificador, _):
-                return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemAluno')
+                return ServerActions.ObtemEntidade(socketDB, identificador, dicts, 'ObtemAluno')
             
             def ObtemTodosAlunos(self, _, __):
                 return ServerActions.ObtemTodasEntidades(dicts, 'ObtemTodosAlunos')

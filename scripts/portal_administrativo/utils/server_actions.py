@@ -110,7 +110,7 @@ class ServerActions:
     # exemplo ({'matricula': '123', 'nome': 'teste'}, x, 'alunos', 'NovoAluno', f)
     # porém, recebe essa entidade como .proto
     @staticmethod
-    def NovaEntidade(socket, entidade, server_dict, topic, action):
+    def NovaEntidade(server_socket, entidade, server_dict, topic, action):
         # exemplo ('alunos', 'matricula', 'c' <-- necessariamente 'c')
         dict_chave, tipo_chave_entidade, crud = ServerActions.action_to_keys(action)
 
@@ -120,7 +120,12 @@ class ServerActions:
         entidade_dict = ServerActions.crud_server(
             server_dict, dict_chave, tipo_chave_entidade, value_str, crud
         )
-        entidade_str = str(entidade_dict)
+
+        if entidade_dict is None:
+            return pb2.Status(
+                status=1,
+                msg=f"Falha ao inserir objeto '{value_str}'.",
+            )
 
         chave = value_dict[tipo_chave_entidade]
         valor = value_str
@@ -128,11 +133,12 @@ class ServerActions:
         msg = json.dumps(
             {"function": "insert", "key": chave, "value": valor}
         )
-        socket.send(msg.encode())
-        response = socket.recv(2048)
+
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
         response = json.loads(response.decode())
 
-        if response.get('data') is None:
+        if response.get('msg') is None:
             return pb2.Status(
                 status=1,
                 msg=f"Falha ao inserir objeto '{value_str}'.",
@@ -198,22 +204,54 @@ class ServerActions:
 
     # entidade é um pb2.Identificador
     @staticmethod
-    def ObtemEntidade(entidade, server_dict, action):
+    def ObtemEntidade(server_socket, entidade, server_dict, action):
         # exemplo ('alunos', 'matricula', 'r' <-- necessariamente 'r')
+
         dict_chave, tipo_chave_entidade, crud = ServerActions.action_to_keys(action)
 
-        entidade_dict = ServerActions.__dict_from_entidade(
-            entidade, tipo_chave_entidade
-        )
-        value = str(entidade_dict)
+        value_dict = ServerActions.__dict_from_entidade(entidade, tipo_chave_entidade)
+        value_str = str(value_dict)
 
-        # um dict ou None
         entidade_dict = ServerActions.crud_server(
-            server_dict, dict_chave, tipo_chave_entidade, value, crud
+            server_dict, dict_chave, tipo_chave_entidade, value_str, crud
         )
 
-        # caso ache alguma coisa, deve criar entidade (pb2.Aluno por exemplo)
         if entidade_dict is not None:
+            if dict_chave == ServerActions.topic_alunos:
+                return pb2.Aluno(
+                    matricula=entidade_dict["id"], nome=entidade_dict["nome"]
+                )
+            elif dict_chave == ServerActions.topic_professores:
+                return pb2.Professor(
+                    siape=entidade_dict["id"], nome=entidade_dict["nome"]
+                )
+            else:
+                return pb2.Disciplina(
+                    sigla=entidade_dict["id"],
+                    nome=entidade_dict["nome"],
+                    vagas=entidade_dict["vagas"],
+                )
+            
+        chave = value_dict[tipo_chave_entidade]
+
+        msg = json.dumps(
+            {"function": "read", "key": chave,}
+        )
+
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
+
+        print(response)
+
+        if response.get('data') is None:
+            return pb2.Status(
+                status=1,
+                msg=f"Falha ao buscar objeto '{value_str}'.",
+            )
+        else:
+            entidade_dict = response.get('data')
+
             if dict_chave == ServerActions.topic_alunos:
                 return pb2.Aluno(
                     matricula=entidade_dict["id"], nome=entidade_dict["nome"]
