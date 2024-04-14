@@ -2,12 +2,13 @@ import plyvel
 import json
 from pysyncobj import SyncObj, replicated
 
-class LevelDB(SyncObj):
+class Database(SyncObj):
     def __init__(self, port, part, primary, secundary):
-        super(LevelDB, self).__init__(primary, secundary)
+        super(Database, self).__init__(primary, secundary)
         self.database = f'database/leveldb/{part}/{port}'
         
-    def insert_data(self, key, value): 
+    @replicated
+    def insert(self, key, value): 
         db = plyvel.DB(self.database, create_if_missing=True) 
 
         bytes_key = bytes(key, 'utf-8')            
@@ -21,6 +22,7 @@ class LevelDB(SyncObj):
 
         db.close()
 
+    @replicated
     def edit_data(self, key, value): 
         db = plyvel.DB(self.database, create_if_missing=True) 
                
@@ -31,7 +33,8 @@ class LevelDB(SyncObj):
         db.put(bytes_key, bytes_value)
 
         db.close()
-        
+    
+    @replicated
     def delete_data(self, key):
         db = plyvel.DB(self.database, create_if_missing=True)
 
@@ -73,10 +76,11 @@ class LevelDB(SyncObj):
         response = []
 
         for _, value in db.iterator():
+            value = value.decode()
             value_object = json.loads(value)
 
             if 'siape' in value_object:
-                response.append(value)
+                response.append(value_object)
 
         db.close()
         return response
@@ -87,10 +91,11 @@ class LevelDB(SyncObj):
         response = []
 
         for _, value in db.iterator():
+            value = value.decode()
             value_object = json.loads(value)
 
             if 'sigla' in value_object:
-                response.append(value)
+                response.append(value_object)
 
         db.close()
         return response

@@ -1,5 +1,5 @@
 from __future__ import print_function
-from leveldb import LevelDB
+from leveldb import Database
 
 import sys
 import socket
@@ -20,7 +20,9 @@ def database_functions(replica, conn, addr):
             value = response_msg['value'] if 'value' in response_msg else None
             
         if msg and function_name == 'insert':   
-            replica.insert_data(key, value)            
+            print(type(replica))
+
+            replica.insert(key, value)
             resp = json.dumps({'msg': "Insert realizado com sucesso."})
 
         if msg and function_name == 'edit':           
@@ -68,36 +70,38 @@ def database_functions(replica, conn, addr):
 
 def run():
     if len(sys.argv) < 3:
-        print("Informe a réplica (0, 1 ou 2) e a partição (0, 1) e réplica do banco.")
+        print("Informe a réplica (0, 1 ou 2) e a partição (0, 1) do banco.")
         sys.exit(-1)
 
     replica = int(sys.argv[1])
     particao = int(sys.argv[2])
 
     if replica not in [0, 1, 2]:
-        print("Escolha: 0, 1 ou 2")
+        print("Escolha 0, 1 ou 2 para réplica")
+        sys.exit(-1)
+
+    if particao not in [0, 1]:
+        print("Escolha 0 ou 1 para partição")
         sys.exit(-1)
     
-    # Réplica 0
     if replica == 0:
         port = 10000
-        replica = LevelDB(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20001',['localhost:20002', 'localhost:20003'])
-    # Réplica 1
-    if replica == 1:
+        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20001',['localhost:20002', 'localhost:20003'])
+    elif replica == 1:
         port = 10001
-        replica = LevelDB(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20002',['localhost:20001', 'localhost:20003'])
-    # Réplica 2        
-    if replica == 2:
+        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20002',['localhost:20001', 'localhost:20003'])
+    elif replica == 2:
         port = 10002
-        replica = LevelDB(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20003',['localhost:20001', 'localhost:20002'])
-    
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', port))
-        s.listen()
+        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20003',['localhost:20001', 'localhost:20002'])
 
-        while True:
-            conn, addr = s.accept()
-            threading.Thread(target=database_functions, args=(replica, conn, addr)).start()
+    sock = socket.socket()
+    host = socket.gethostname()
+    sock.bind((host, port))
+    sock.listen(15)
+
+    while True:
+        conn, addr = sock.accept()
+        threading.Thread(target=database_functions, args=(database, conn, addr)).start()
 
 if __name__ == '__main__':
     run()

@@ -10,21 +10,31 @@ from scripts.portal_administrativo.utils.server_actions import ServerActions
 class ServerService(object):
     @staticmethod
     def service(dicts):
-        num_socket = random.randint(10000,10002)
-        num_socket = 10001
+        count = 0
+        error = False
 
-        try:
-            socketDB = socket.socket()
-            socketDB.settimeout(1)
+        while count < 3:
+            num_socket = random.randint(10000,10002)
+        
+            try:
+                host = socket.gethostname()
 
-            socketDB.connect(('127.0.0.1', num_socket))
+                socketDB = socket.socket()
+                socketDB.settimeout(1)
 
-            print(f'Servidor iniciado, conectado ao servidor do na porta {num_socket}')
+                socketDB.connect((host, num_socket))
+                error = False
 
-        except:
+                print(f'Portal administrativo conectado ao servidor do banco na porta {num_socket}')
+
+                break
+            except:
+                count += 1
+                error = True
+                    
+        if error is True:
             print('Erro na criação das partições')
             sys.exit()
-                    
         
         class PortalAdministrativo(pb2_grpc.PortalAdministrativo):
             def NovoAluno(self, aluno, _):

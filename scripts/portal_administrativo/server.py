@@ -1,4 +1,3 @@
-import random
 import sys 
 import grpc
 
@@ -14,10 +13,7 @@ dados = {ServerActions.topic_alunos: dict(),
 
 def start_server(port_):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-
-    service = ServerService()
-
-    pb2_grpc.add_PortalAdministrativoServicer_to_server(service.service(dados), server)
+    pb2_grpc.add_PortalAdministrativoServicer_to_server(ServerService().service(dados), server)
     
     server.add_insecure_port('[::]:' + port_)
     server.start()
@@ -27,7 +23,6 @@ def start_server(port_):
     return server
 
 if __name__ == '__main__':
-
     port_ = '50051' if len(sys.argv) <= 1 else sys.argv[1]
 
     server = start_server(port_)
