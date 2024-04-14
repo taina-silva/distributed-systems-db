@@ -28,53 +28,53 @@ class ServerService(object):
         
         class PortalAdministrativo(pb2_grpc.PortalAdministrativo):
             def NovoAluno(self, aluno, _):
-                return ServerActions.NovaEntidade(socketDB, aluno, dicts, ServerActions.topic_alunos, 'NovoAluno')
+                return ServerActions.NovaEntidade(socketDB, aluno, dicts, 'NovoAluno')
                 
             def EditaAluno(self, aluno, _):
-                return ServerActions.EditaEntidade(aluno, dicts, ServerActions.topic_alunos, 'EditaAluno')
+                return ServerActions.EditaEntidade(socketDB, aluno, dicts, 'EditaAluno')
                 
             def RemoveAluno(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_alunos, 'RemoveAluno')
+                return ServerActions.RemoveEntidade(socketDB, identificador, dicts, 'RemoveAluno')
 
             def ObtemAluno(self, identificador, _):
                 return ServerActions.ObtemEntidade(socketDB, identificador, dicts, 'ObtemAluno')
             
             def ObtemTodosAlunos(self, _, __):
-                return ServerActions.ObtemTodasEntidades(dicts, 'ObtemTodosAlunos')
+                return ServerActions.ObtemTodasEntidades(socketDB, dicts, 'ObtemTodosAlunos')
 
             # --------------------------------------------------------------
 
             def NovoProfessor(self, professor, _):
-                return ServerActions.NovaEntidade(professor, dicts, ServerActions.topic_professores, 'NovoProfessor')
+                return ServerActions.NovaEntidade(socketDB, professor, dicts, 'NovoProfessor')
                 
             def EditaProfessor(self, professor, _):
-                return ServerActions.EditaEntidade(professor, dicts, ServerActions.topic_professores, 'EditaProfessor')
+                return ServerActions.EditaEntidade(socketDB, professor, dicts, 'EditaProfessor')
                 
             def RemoveProfessor(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_professores, 'RemoveProfessor')
+                return ServerActions.RemoveEntidade(socketDB, identificador, dicts, 'RemoveProfessor')
 
             def ObtemProfessor(self, identificador, _):
-                return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemProfessor')
+                return ServerActions.ObtemEntidade(socketDB, identificador, dicts, 'ObtemProfessor')
             
             def ObtemTodosProfessores(self, _, __):
-                return ServerActions.ObtemTodasEntidades(dicts, 'ObtemTodosProfessores')
+                return ServerActions.ObtemTodasEntidades(socketDB, dicts, 'ObtemTodosProfessores')
 
             # --------------------------------------------------------------
 
             def NovaDisciplina(self, disciplina, _):
-                return ServerActions.NovaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'NovaDisciplina')
+                return ServerActions.NovaEntidade(socketDB, disciplina, dicts, 'NovaDisciplina')
                 
             def EditaDisciplina(self, disciplina, _):
-                return ServerActions.EditaEntidade(disciplina, dicts, ServerActions.topic_disciplinas, 'EditaDisciplina')
+                return ServerActions.EditaEntidade(socketDB, disciplina, dicts, 'EditaDisciplina')
                 
             def RemoveDisciplina(self, identificador, _):
-                return ServerActions.RemoveEntidade(identificador, dicts, ServerActions.topic_disciplinas, 'RemoveDisciplina')
+                return ServerActions.RemoveEntidade(socketDB, identificador, dicts, 'RemoveDisciplina')
 
             def ObtemDisciplina(self, identificador, _):
-                return ServerActions.ObtemEntidade(identificador, dicts, 'ObtemDisciplina')
+                return ServerActions.ObtemEntidade(socketDB, identificador, dicts, 'ObtemDisciplina')
 
             def ObtemTodasDisciplinas(self, _, __):
-                return ServerActions.ObtemTodasEntidades(dicts, 'ObtemTodasDisciplinas')
+                return ServerActions.ObtemTodasEntidades(socketDB, dicts, 'ObtemTodasDisciplinas')
             
         return PortalAdministrativo()
         
