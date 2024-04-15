@@ -22,7 +22,7 @@ def database_functions(replica, conn, addr):
         if msg and function_name == 'insert':   
             print(type(replica))
 
-            replica.insert(key, value)
+            replica.insert_data(key, value)
             resp = json.dumps({'msg': "Insert realizado com sucesso."})
 
         if msg and function_name == 'edit':           
@@ -37,7 +37,11 @@ def database_functions(replica, conn, addr):
             response = replica.get_data(key)
 
             if response != '':
-                response = json.loads(response)    
+                response = json.loads(response)   
+
+                if key.contains('sigla'):
+                    response.pop('teachers', None)
+                    response.pop('students', None)
             
             resp = json.dumps({'data': response})
 
@@ -60,10 +64,13 @@ def database_functions(replica, conn, addr):
         if msg and function_name == 'read_disciplines':
             response = replica.get_all_disciplines()
 
-            if response != '':
+            if response != '':                
                 resp = json.dumps({'data': response})
             else:
-                resp = json.dumps({'data': []})    
+                resp = json.dumps({'data': []})  
+
+        if msg and function_name == 'add_teacher': 
+            
             
         if msg:
             conn.send(resp.encode())

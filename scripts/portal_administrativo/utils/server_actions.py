@@ -123,7 +123,7 @@ class ServerActions:
         chave = value_dict[tipo_chave_entidade_1]
         valor = value_str
 
-        msg = json.dumps({"function": "insert", "key": chave, "value": valor})
+        msg = json.dumps({"function": "insert", "key": f'{tipo_chave_entidade_1}-{chave}', "value": valor})
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -157,7 +157,7 @@ class ServerActions:
         chave = value_dict[tipo_chave_entidade_1]
         valor = value_str
 
-        msg = json.dumps({"function": "edit", "key": chave, "value": valor})
+        msg = json.dumps({"function": "edit", "key": f'{tipo_chave_entidade_1}-{chave}', "value": valor})
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -196,7 +196,7 @@ class ServerActions:
 
         chave = value_dict[tipo_chave_entidade_1]
 
-        msg = json.dumps({"function": "delete", "key": chave})
+        msg = json.dumps({"function": "delete", "key": f'{tipo_chave_entidade_1}-{chave}'})
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -238,12 +238,7 @@ class ServerActions:
 
         chave = value_dict[tipo_chave_entidade_1]
 
-        msg = json.dumps(
-            {
-                "function": "read",
-                "key": chave,
-            }
-        )
+        msg = json.dumps({"function": "read", "key": f'{tipo_chave_entidade_1}-{chave}'})
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
