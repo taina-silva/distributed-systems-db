@@ -250,7 +250,7 @@ class ServerActions:
                 return None
 
     @staticmethod
-    def AdicionaPessoaEmDisciplina(entidade, server_dict, action, publish):
+    def AdicionaPessoaEmDisciplina(server_socket, entidade, server_dict, action):
         dict_chaves, tipo_chave_1, tipo_chave_2, tipo_chave_3, tipo_chave_4, crud = (
             ServerActions.action_to_keys(action)
         )
@@ -259,7 +259,7 @@ class ServerActions:
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[0])
         value_str = str(value_dict)
 
-        if dict_chaves[2] == ServerActions.topic_alunos:
+        """ if dict_chaves[2] == ServerActions.topic_alunos:
             disciplina = ServerActions.ObtemDisciplinaDetalhada(
                 pb2_admin.Identificador(id=value_dict["disciplina"]),
                 server_dict,
@@ -291,24 +291,41 @@ class ServerActions:
                 status=1,
                 msg=f"Falha ao adicionar entidade de chave '{value_dict['idPessoa']}' na disciplina de chave '{value_dict['disciplina']}'.",
             )
+ """
+        
+        
 
-        topic = (
-            ServerActions.topic_disciplinas_professor
-            if dict_chaves[2] == ServerActions.topic_professores
-            else ServerActions.topic_disciplinas_alunos
+        chave = value_dict[tipo_chave_1]
+        valor = value_str
+        
+        msg = json.dumps(
+            {
+                "function": "insert",
+                "key": chave,
+                "value": valor,
+            }
         )
 
-        status = publish(topic, f"{action}-{value_str}")
+        print('\nAAA')
+        print(tipo_chave_1)
+        print(tipo_chave_2)
+        print(tipo_chave_3)
+        print(tipo_chave_4)
+        print('AAA\n')
 
-        if status != 0:
-            return pb2_admin.Status(
-                status=status,
-                msg=f"Falha ao publicar '{action}-{value_str}' em '{topic}'.",
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
+
+        if response.get("msg") is None:
+            return pb2.Status(
+                status=1,
+                msg=f"Falha ao inserir objeto '{value_str}'.",
             )
         else:
-            return pb2_admin.Status(
-                status=status,
-                msg=f"Mensagem '{action}-{value_str}' publicada em '{topic}' com sucesso",
+            return pb2.Status(
+                status=0,
+                msg=f"Sucesso ao inserir objeto '{value_str}'.",
             )
 
     @staticmethod

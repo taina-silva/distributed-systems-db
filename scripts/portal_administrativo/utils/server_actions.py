@@ -110,7 +110,7 @@ class ServerActions:
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chave)
         value_str = json.dumps(value_dict)
 
-        entidade_dict = ServerActions.crud_server(
+        """ entidade_dict = ServerActions.crud_server(
             server_dict, dict_chave, tipo_chave_entidade_1, _, value_str, crud
         )
 
@@ -118,12 +118,18 @@ class ServerActions:
             return pb2.Status(
                 status=1,
                 msg=f"Falha ao inserir objeto '{value_str}'.",
-            )
+            ) """
 
         chave = value_dict[tipo_chave_entidade_1]
         valor = value_str
 
-        msg = json.dumps({"function": "insert", "key": f'{tipo_chave_entidade_1}-{chave}', "value": valor})
+        msg = json.dumps(
+            {
+                "function": "insert",
+                "key": f"{tipo_chave_entidade_1}-{chave}",
+                "value": valor,
+            }
+        )
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -150,14 +156,20 @@ class ServerActions:
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chave)
         value_str = json.dumps(value_dict)
 
-        ServerActions.crud_server(
+        """ ServerActions.crud_server(
             server_dict, dict_chave, tipo_chave_entidade_1, _, value_str, crud
-        )
+        ) """
 
         chave = value_dict[tipo_chave_entidade_1]
         valor = value_str
 
-        msg = json.dumps({"function": "edit", "key": f'{tipo_chave_entidade_1}-{chave}', "value": valor})
+        msg = json.dumps(
+            {
+                "function": "edit",
+                "key": f"{tipo_chave_entidade_1}-{chave}",
+                "value": valor,
+            }
+        )
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -185,18 +197,20 @@ class ServerActions:
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chave)
         value_str = str(value_dict)
 
-        ServerActions.crud_server(
+        """ ServerActions.crud_server(
             server_dict,
             dict_chave,
             tipo_chave_entidade_1,
             tipo_chave_entidade_2,
             value_str,
-            crud
-        )
+            crud,
+        ) """
 
         chave = value_dict[tipo_chave_entidade_1]
 
-        msg = json.dumps({"function": "delete", "key": f'{tipo_chave_entidade_1}-{chave}'})
+        msg = json.dumps(
+            {"function": "delete", "key": f"{tipo_chave_entidade_1}-{chave}"}
+        )
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
@@ -224,7 +238,7 @@ class ServerActions:
         value_dict = ServerActions.__dict_from_entidade(entidade, tipo_chave_entidade_1)
         value_str = str(value_dict)
 
-        entidade_dict = ServerActions.crud_server(
+        """ entidade_dict = ServerActions.crud_server(
             server_dict,
             dict_chave,
             tipo_chave_entidade_1,
@@ -234,11 +248,13 @@ class ServerActions:
         )
 
         if entidade_dict is not None:
-            return ServerActions.__entidade_from_dict(entidade_dict, dict_chave)
+            return ServerActions.__entidade_from_dict(entidade_dict, dict_chave) """
 
         chave = value_dict[tipo_chave_entidade_1]
 
-        msg = json.dumps({"function": "read", "key": f'{tipo_chave_entidade_1}-{chave}'})
+        msg = json.dumps(
+            {"function": "read", "key": f"{tipo_chave_entidade_2}-{chave}"}
+        )
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)

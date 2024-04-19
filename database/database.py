@@ -5,7 +5,8 @@ import sys
 import socket
 import threading
 import json
-            
+
+
 def database_functions(replica, conn, addr):
     while True:
         data = conn.recv(2048)
@@ -15,65 +16,61 @@ def database_functions(replica, conn, addr):
 
         if msg:
             response_msg = json.loads(msg)
-            function_name = response_msg['function']
-            key = response_msg['key'] if 'key' in response_msg else None
-            value = response_msg['value'] if 'value' in response_msg else None
-            
-        if msg and function_name == 'insert':   
-            print(type(replica))
+            function_name = response_msg["function"]
+            key = response_msg["key"] if "key" in response_msg else None
+            value = response_msg["value"] if "value" in response_msg else None
 
+        if msg and function_name == "insert":
             replica.insert_data(key, value)
-            resp = json.dumps({'msg': "Insert realizado com sucesso."})
+            resp = json.dumps({"msg": "Insert realizado com sucesso."})
 
-        if msg and function_name == 'edit':           
-            replica.edit_data(key, value)            
-            resp = json.dumps({'msg': "Edit realizado com sucesso."})
+        if msg and function_name == "edit":
+            replica.edit_data(key, value)
+            resp = json.dumps({"msg": "Edit realizado com sucesso."})
 
-        if msg and function_name == 'delete':
+        if msg and function_name == "delete":
             replica.delete_data(key)
-            resp = json.dumps({'msg': "Delete realizado com sucesso."})
+            resp = json.dumps({"msg": "Delete realizado com sucesso."})
 
-        if msg and function_name == 'read':
+        if msg and function_name == "read":
             response = replica.get_data(key)
 
-            if response != '':
-                response = json.loads(response)   
+            if response != "":
+                response = json.loads(response)
 
-                if key.contains('sigla'):
-                    response.pop('teachers', None)
-                    response.pop('students', None)
-            
-            resp = json.dumps({'data': response})
+                if "sigla" in key:
+                    response.pop("teachers")
+                    response.pop("students")
 
-        if msg and function_name == 'read_students':
+            resp = json.dumps({"data": response})
+
+        if msg and function_name == "read_students":
             response = replica.get_all_students()
 
-            if response != '':
-                resp = json.dumps({'data': response})
+            if response != "":
+                resp = json.dumps({"data": response})
             else:
-                resp = json.dumps({'data': []})
-        
-        if msg and function_name == 'read_teachers':
+                resp = json.dumps({"data": []})
+
+        if msg and function_name == "read_teachers":
             response = replica.get_all_teachers()
 
-            if response != '':
-                resp = json.dumps({'data': response})
+            if response != "":
+                resp = json.dumps({"data": response})
             else:
-                resp = json.dumps({'data': []})
+                resp = json.dumps({"data": []})
 
-        if msg and function_name == 'read_disciplines':
+        if msg and function_name == "read_disciplines":
             response = replica.get_all_disciplines()
 
-            if response != '':                
-                resp = json.dumps({'data': response})
+            if response != "":
+                resp = json.dumps({"data": response})
             else:
-                resp = json.dumps({'data': []})  
+                resp = json.dumps({"data": []})
 
-        if msg and function_name == 'add_teacher': 
-            
-            
         if msg:
             conn.send(resp.encode())
+
 
 def run():
     if len(sys.argv) < 3:
@@ -90,25 +87,63 @@ def run():
     if particao not in [0, 1]:
         print("Escolha 0 ou 1 para partição")
         sys.exit(-1)
-    
+
+    particao00 = particao == 0
+
     if replica == 0:
-        port = 10000
-        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20001',['localhost:20002', 'localhost:20003'])
+        port = 10001 if particao00 else 10004
+        database = Database(
+            port,
+            "particao00" if particao00 else "particao01",
+            f"localhost:{20001 if particao00 else 20004}",
+            [
+                f"localhost:{20004 if particao00 else 20001}",
+                "localhost:20002",
+                "localhost:20003",
+                "localhost:20005",
+                "localhost:20006",
+            ],
+        )
     elif replica == 1:
-        port = 10001
-        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20002',['localhost:20001', 'localhost:20003'])
+        port = 10002 if particao00 else 10005
+        database = Database(
+            port,
+            "particao00" if particao00 else "particao01",
+            f"localhost:{20002 if particao00 else 20005}",
+            [
+                f'localhost:{20005 if particao00 else 20002}',
+                "localhost:20001",
+                "localhost:20003",
+                "localhost:20004",
+                "localhost:20006",
+            ],
+        )
     elif replica == 2:
-        port = 10002
-        database = Database(port, 'particao00' if particao == 0 else 'particao01', 'localhost:20003',['localhost:20001', 'localhost:20002'])
+        port = 10003 if particao00 else 10006
+        database = Database(
+            port,
+            "particao00" if particao00 else "particao01",
+            f"localhost:{20003 if particao00 else 20006}",
+            [
+                f'localhost:{20006 if particao00 else 20003}',
+                "localhost:20001",
+                "localhost:20002",
+                "localhost:20004",
+                "localhost:20005",
+            ],
+        )
 
-    sock = socket.socket()
     host = socket.gethostname()
-    sock.bind((host, port))
-    sock.listen(15)
 
-    while True:
-        conn, addr = sock.accept()
-        threading.Thread(target=database_functions, args=(database, conn, addr)).start()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
 
-if __name__ == '__main__':
+        print(f'Banco de dados iniciado em porta {port}')
+
+        while True:
+            conn, addr = s.accept()
+            threading.Thread(target=database_functions, args=(database, conn, addr)).start()
+
+if __name__ == "__main__":
     run()
