@@ -25,22 +25,28 @@ def database_functions(replica, conn, addr):
             resp = json.dumps({"msg": "Insert realizado com sucesso."})
 
         if msg and function_name == "edit":
-            replica.edit_data(key, value)
-            resp = json.dumps({"msg": "Edit realizado com sucesso."})
+            if replica.get_data(key) == "":
+                resp = json.dumps({"error": "Erro ao realizar edit."})
+            else:
+                replica.edit_data(key, value)
+                resp = json.dumps({"msg": "Edit realizado com sucesso."})
 
         if msg and function_name == "delete":
-            replica.delete_data(key)
-            resp = json.dumps({"msg": "Delete realizado com sucesso."})
+            if replica.get_data(key) == "":
+                resp = json.dumps({"error": "Erro ao realizar delete."})
+            else:
+                replica.delete_data(key)
+                resp = json.dumps({"msg": "Delete realizado com sucesso."})
 
         if msg and function_name == "read":
             response = replica.get_data(key)
 
-            if response != "":
+            if response != "":                
                 response = json.loads(response)
 
                 if "sigla" in key:
-                    response.pop("teachers")
-                    response.pop("students")
+                    response.pop("teachers", None)
+                    response.pop("students", None)
 
             resp = json.dumps({"data": response})
 
@@ -67,6 +73,52 @@ def database_functions(replica, conn, addr):
                 resp = json.dumps({"data": response})
             else:
                 resp = json.dumps({"data": []})
+
+        if msg and function_name == "add_person_at_discipline":
+            if replica.get_data(key) == "" or replica.get_data(value) == "":
+                resp = json.dumps({"error": "Erro ao adicionar entidade à disciplina."})
+            else:
+                response = replica.add_person_at_discipline(key, value)
+                
+                if response == False:
+                    resp = json.dumps({"error": "Erro ao adicionar entidade à disciplina."})
+                else:
+                    resp = json.dumps({"msg": "Sucesso ao adicionar entidade à disciplina."})
+
+        if msg and function_name == "remove_person_at_discipline":
+            if replica.get_data(key) == "" or replica.get_data(value) == "":
+                resp = json.dumps({"error": "Erro ao remover entidade de disciplina."})
+            else:
+                response = replica.remove_person_at_discipline(key, value)
+                resp = json.dumps({"msg": "Sucesso ao remover entidade da disciplina."})
+
+        if msg and function_name == "remove_person_at_discipline":
+            if replica.get_data(key) == "" or replica.get_data(value) == "":
+                resp = json.dumps({"error": "Erro ao remover entidade de disciplina."})
+            else:
+                response = replica.remove_person_at_discipline(key, value)
+                resp = json.dumps({"msg": "Sucesso ao remover entidade da disciplina."})
+
+        if msg and function_name == "detailed_discipline":
+            if replica.get_data(key) == "":
+                resp = json.dumps({"error": "Erro ao buscar disciplina."})
+            else:
+                response = replica.detailed_discipline(key)
+                resp = json.dumps({"data": response})
+
+        if msg and function_name == "get_teacher_disciplines":
+            if replica.get_data(key) == "":
+                resp = json.dumps({"error": "Erro ao buscar disciplinas professor."})
+            else:
+                response = replica.get_teacher_disciplines(key)
+                resp = json.dumps({"data": response})
+
+        if msg and function_name == "get_student_disciplines":
+            if replica.get_data(key) == "":
+                resp = json.dumps({"error": "Erro ao buscar disciplinas aluno."})
+            else:
+                response = replica.get_student_disciplines(key)
+                resp = json.dumps({"data": response})
 
         if msg:
             conn.send(resp.encode())

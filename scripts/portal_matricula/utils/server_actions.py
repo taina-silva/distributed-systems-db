@@ -2,11 +2,6 @@ import json
 import copy
 import scripts.portal_administrativo.protos.portal_administrativo_pb2 as pb2_admin
 import scripts.portal_matricula.protos.portal_matricula_pb2 as pb2
-import scripts.portal_matricula.protos.portal_matricula_pb2_grpc as pb2_grpc
-
-from scripts.portal_administrativo.utils.server_actions import (
-    ServerActions as admininistrativo_server_actions,
-)
 
 
 class ServerActions:
@@ -140,7 +135,7 @@ class ServerActions:
 
             # exemplo '{'disciplina': gbc, 'idPessoa': '123'}'
             entidade_dict = eval(value)
-            
+
             try:
                 entidade_1_dict = dicionario_entidade_1[
                     entidade_dict[tipo_chave_entidade_1]
@@ -255,213 +250,162 @@ class ServerActions:
             ServerActions.action_to_keys(action)
         )
 
-        # '{'disciplina': gbc, 'idPessoa': '123'}'
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[0])
-        value_str = str(value_dict)
-
-        """ if dict_chaves[2] == ServerActions.topic_alunos:
-            disciplina = ServerActions.ObtemDisciplinaDetalhada(
-                pb2_admin.Identificador(id=value_dict["disciplina"]),
-                server_dict,
-                "DetalhaDisciplina",
-                True,
-            )
-
-            if disciplina != 0 and disciplina.disciplina.vagas == len(
-                disciplina.alunos
-            ):
-                return pb2_admin.Status(
-                    status=1,
-                    msg=f"Falha ao adicionar entidade de chave '{value_dict['idPessoa']}' na disciplina de chave '{value_dict['disciplina']}'. Disciplina inexistente ou lotada.",
-                )
-
-        result = ServerActions.crud_server(
-            server_dict,
-            dict_chaves,
-            tipo_chave_1,
-            tipo_chave_2,
-            tipo_chave_3,
-            tipo_chave_4,
-            value_str,
-            crud,
-        )
-
-        if result is None:
-            return pb2_admin.Status(
-                status=1,
-                msg=f"Falha ao adicionar entidade de chave '{value_dict['idPessoa']}' na disciplina de chave '{value_dict['disciplina']}'.",
-            )
- """
-        
-        
-
         chave = value_dict[tipo_chave_1]
-        valor = value_str
-        
+        valor = value_dict[tipo_chave_2]
+
         msg = json.dumps(
             {
-                "function": "insert",
-                "key": chave,
-                "value": valor,
+                "function": "add_person_at_discipline",
+                "key": f"{tipo_chave_3}-{chave}",
+                "value": f"{tipo_chave_4}-{valor}",
             }
         )
-
-        print('\nAAA')
-        print(tipo_chave_1)
-        print(tipo_chave_2)
-        print(tipo_chave_3)
-        print(tipo_chave_4)
-        print('AAA\n')
 
         server_socket.send(msg.encode())
         response = server_socket.recv(2048)
         response = json.loads(response.decode())
 
-        if response.get("msg") is None:
-            return pb2.Status(
+        if response.get("error") is not None:
+            return pb2_admin.Status(
                 status=1,
-                msg=f"Falha ao inserir objeto '{value_str}'.",
+                msg=f"Falha ao inserir pessoa à disciplina.",
             )
         else:
-            return pb2.Status(
+            return pb2_admin.Status(
                 status=0,
-                msg=f"Sucesso ao inserir objeto '{value_str}'.",
+                msg=f"Sucesso ao inserir pessoa à disciplina.",
             )
 
     @staticmethod
-    def RemovePessoaDeDisciplina(entidade, server_dict, action, publish):
-        dict_chaves, tipo_chave_1, tipo_chave_2, _, _, crud = (
+    def RemovePessoaDeDisciplina(server_socket, entidade, server_dict, action):
+        dict_chaves, tipo_chave_1, tipo_chave_2, tipo_chave_3, tipo_chave_4, crud = (
             ServerActions.action_to_keys(action)
         )
 
-        # '{'disciplina': gbc, 'idPessoa': '123'}'
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[0])
-        value_str = str(value_dict)
+        chave = value_dict[tipo_chave_1]
+        valor = value_dict[tipo_chave_2]
 
-        result = ServerActions.crud_server(
-            server_dict, dict_chaves, tipo_chave_1, tipo_chave_2, _, _, value_str, crud
+        msg = json.dumps(
+            {
+                "function": "remove_person_at_discipline",
+                "key": f"{tipo_chave_3}-{chave}",
+                "value": f"{tipo_chave_4}-{valor}",
+            }
         )
 
-        if result is None:
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
+
+        if response.get("error") is not None:
             return pb2_admin.Status(
                 status=1,
-                msg=f"Falha ao remover entidade de chave '{value_dict['idPessoa']}' na disciplina de chave '{value_dict['disciplina']}'.",
-            )
-
-        topic = (
-            ServerActions.topic_disciplinas_professor
-            if dict_chaves[2] == ServerActions.topic_professores
-            else ServerActions.topic_disciplinas_alunos
-        )
-
-        status = publish(topic, f"{action}-{value_str}")
-
-        if status != 0:
-            return pb2_admin.Status(
-                status=status,
-                msg=f"Falha ao publicar '{action}-{value_str}' em '{topic}'.",
+                msg=f"Falha ao remover pessoa da disciplina.",
             )
         else:
             return pb2_admin.Status(
-                status=status,
-                msg=f"Mensagem '{action}-{value_str}' publicada em '{topic}' com sucesso",
+                status=0,
+                msg=f"Sucesso ao remover pessoa da disciplina.",
             )
 
     @staticmethod
-    def ObtemDisciplinaDetalhada(entidade, server_dict, action, from_add):
+    def ObtemDisciplinaDetalhada(
+        server_socket, entidade, server_dict, action, from_add
+    ):
         dict_chaves, tipo_chave_1, tipo_chave_2, tipo_chave_3, _, crud = (
             ServerActions.action_to_keys(action)
         )
 
-        # '{'id': 'gbc'}'
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[2])
-        value_str = str(value_dict)
+        chave = value_dict["id"]
 
-        result = ServerActions.crud_server(
-            server_dict,
-            dict_chaves,
-            tipo_chave_1,
-            tipo_chave_2,
-            tipo_chave_3,
-            _,
-            value_str,
-            crud,
+        msg = json.dumps(
+            {"function": "detailed_discipline", "key": f"{tipo_chave_1}-{chave}"}
         )
 
-        if from_add == True and result == 0:
-            return 0
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
 
-        if result != 0:
+        if response.get("data") is not None:
+            data = response.get("data")
+
+            discipline = data["discipline"] if "discipline" in data else None
+            teacher = data["teacher"] if "teacher" in data else None
+            students = data["students"] if "students" in data else []
+
             return pb2.RelatorioDisciplina(
-                disciplina=result["disciplina"],
-                professor=result["professor"],
-                alunos=result["alunos"],
+                disciplina=discipline, professor=teacher, alunos=students
             )
 
     @staticmethod
-    def ObtemDisciplinasEntidade(entidade, server_dict, action):
+    def ObtemDisciplinasProfessor(server_socket, entidade, server_dict, action):
         dict_chaves, tipo_chave_1, tipo_chave_2, tripo_chave_3, _, crud = (
             ServerActions.action_to_keys(action)
         )
 
-        # '{'id': '123'}'
         value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[2])
-        prof_entidade = action == "ObtemDisciplinasProfessor"
-        disciplinas_dict = server_dict[
-            (
-                ServerActions.topic_disciplinas_professor
-                if prof_entidade == True
-                else ServerActions.topic_disciplinas_alunos
-            )
-        ]
-        if prof_entidade == True:
-            todas_disciplinas_dict = dict(
-                (k, v) for (k, v) in disciplinas_dict.items() if v == value_dict["id"]
-            )
-        else:
-            todas_disciplinas_dict = dict(
-                (k, v) for (k, v) in disciplinas_dict.items() if value_dict["id"] in v
-            )
+        chave = value_dict["id"]
 
-        disciplinas_list = []
+        msg = json.dumps(
+            {"function": "get_teacher_disciplines", "key": f"{tipo_chave_2}-{chave}"}
+        )
 
-        for key, value in todas_disciplinas_dict.items():
-            result = ServerActions.crud_server(
-                server_dict,
-                dict_chaves,
-                tipo_chave_1,
-                tipo_chave_2,
-                tripo_chave_3,
-                _,
-                str({"id": key}),
-                "dd",
-            )
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
 
-            if result is not None:
+        if response.get("data") is not None:
+            disciplinas_list = []
+
+            for r in response.get("data"):
+                discipline = r["discipline"] if "discipline" in r else None
+                teacher = r["teacher"] if "teacher" in r else None
+                students = r["students"] if "students" in r else []
+
                 disciplinas_list.append(
                     pb2.RelatorioDisciplina(
-                        disciplina=result["disciplina"],
-                        professor=result["professor"],
-                        alunos=result["alunos"],
+                        disciplina=discipline, professor=teacher, alunos=students
                     )
                 )
 
-        return iter(disciplinas_list)
+            return iter(disciplinas_list)
 
     @staticmethod
-    def ObtemDisciplinasAluno(entidade, server_dict, action):
-        result = ServerActions.ObtemDisciplinasEntidade(entidade, server_dict, action)
-
-        return iter(
-            map(
-                lambda e: pb2.ResumoDisciplina(
-                    disciplina=e.disciplina,
-                    professor=e.professor,
-                    totalAlunos=len(e.alunos),
-                ),
-                result,
-            )
+    def ObtemDisciplinasAluno(server_socket, entidade, server_dict, action):
+        dict_chaves, tipo_chave_1, tipo_chave_2, tipo_chave_3, _, crud = (
+            ServerActions.action_to_keys(action)
         )
+
+        value_dict = ServerActions.__dict_from_entidade(entidade, dict_chaves[2])
+
+        chave = value_dict["id"]
+
+        msg = json.dumps(
+            {"function": "get_student_disciplines", "key": f"{tipo_chave_3}-{chave}"}
+        )
+
+        server_socket.send(msg.encode())
+        response = server_socket.recv(2048)
+        response = json.loads(response.decode())
+
+        if response.get("data") is not None:
+            disciplinas_list = []
+
+            for r in response.get("data"):
+                discipline = r["discipline"] if "discipline" in r else None
+                teacher = r["teacher"] if "teacher" in r else None
+                students = r["students"] if "students" in r else []
+
+                disciplinas_list.append(
+                    pb2.ResumoDisciplina(
+                        disciplina=discipline, professor=teacher, totalAlunos=students
+                    )
+                )
+
+            return iter(disciplinas_list)
 
     @staticmethod
     def __dict_from_entidade(entidade, dict_chave):

@@ -15,11 +15,11 @@ dados = {matricula_server_actions.topic_alunos: dict(),
         matricula_server_actions.topic_disciplinas_professor: dict()
     }
 
-def start_server(port_, client):
+def start_server(port_):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     pb2_grpc.add_PortalMatriculaServicer_to_server(
-        ServerService.service(client, dados), server)
+        ServerService.service(dados), server)
     
     server.add_insecure_port('[::]:' + port_)
     server.start()

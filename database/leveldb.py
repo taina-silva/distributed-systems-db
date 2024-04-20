@@ -15,7 +15,7 @@ class Database(SyncObj):
         db = plyvel.DB(self.database, create_if_missing=True)
 
         bytes_key = bytes(key, "utf-8")
-        bytes_value = bytes(json.dumps(value), "utf-8")
+        bytes_value = bytes(value, "utf-8")
 
         if not db.get(bytes_key):
             db.put(bytes_key, bytes_value)
@@ -32,7 +32,7 @@ class Database(SyncObj):
         bytes_key = bytes(key, "utf-8")
         db.delete(bytes_key)
 
-        bytes_value = bytes(json.dumps(value), "utf-8")
+        bytes_value = bytes(value, "utf-8")
         db.put(bytes_key, bytes_value)
 
         db.close()
@@ -52,6 +52,8 @@ class Database(SyncObj):
         bytes_key = bytes(key, "utf-8")
         response_bytes = db.get(bytes_key)
 
+        print(response_bytes.decode())
+
         response = "" if not response_bytes else response_bytes.decode()
 
         db.close()
@@ -64,9 +66,8 @@ class Database(SyncObj):
 
         for _, value in db.iterator():
             value = value.decode()
-            value = json.loads(value)
 
-            if "matricula" in value:
+            if "matricula" in value and "sigla" not in value:
                 response.append(value)
 
         db.close()
@@ -79,9 +80,8 @@ class Database(SyncObj):
 
         for _, value in db.iterator():
             value = value.decode()
-            value = json.loads(value)
 
-            if "siape" in value:
+            if "siape" in value and "sigla" not in value:
                 response.append(value)
 
         db.close()
@@ -93,9 +93,15 @@ class Database(SyncObj):
         response = []
 
         for _, value in db.iterator():
-            value = value.decode().replace("\\", "")
-            value = value[1:]
-            value = value[:-1]
+            value = value.decode()
+
+            if value[0] == '"':
+                value = value[1:]
+                value = value[:-1]
+
+            value = value.replace("\\", "")
+            value = value.replace("'", '"')
+
             value_object = json.loads(value)
 
             if "sigla" in value:
@@ -106,97 +112,109 @@ class Database(SyncObj):
         db.close()
         return response
 
-    def add_teacher_at_discipline(self, key, value):
+    @replicated
+    def add_person_at_discipline(self, key, value):
         db = plyvel.DB(self.database, create_if_missing=True)
 
         bytes_key = bytes(key, "utf-8")
+
         discpline_bytes = db.get(bytes_key)
 
-        if not discpline_bytes:
-            db.close()
-            return False
+        discipline = discpline_bytes.decode()
+        discipline = json.loads(discipline)
 
-        discipline_object = json.loads(discpline_bytes.decode())
-        discipline_object["teacher"] = value
-        bytes_value = bytes(json.dumps(discipline_object), "utf-8")
+        if "siape" in value:
+            discipline["teacher"] = value
+        else:
+            students = discipline["students"] if "students" in discipline else ""
+            students = students.split()
+
+            print(discipline)
+
+            if len(students) == ["vagas"]:
+                return False
+
+            if value not in students:
+                students.append(value)
+
+            students = " ".join(str(x) for x in students)
+            discipline["students"] = students
+
+        bytes_value = bytes(json.dumps(discipline), "utf-8")
 
         db.delete(bytes_key)
         db.put(bytes_key, bytes_value)
 
         db.close()
-        return True
 
-    def add_student_at_discipline(self, key, value):
+    @replicated
+    def remove_person_at_discipline(self, key, value):
         db = plyvel.DB(self.database, create_if_missing=True)
 
         bytes_key = bytes(key, "utf-8")
+
         discpline_bytes = db.get(bytes_key)
 
-        if not discpline_bytes:
-            db.close()
-            return False
+        discipline = discpline_bytes.decode()
+        discipline = json.loads(discipline)
 
-        discipline_object = json.loads(discpline_bytes.decode())
-        students = (
-            discipline_object["students"] if discipline_object[""] is not None else []
-        )
+        if "siape" in value:
+            discipline.pop("teacher", None)
+        else:
+            students = discipline["students"] if "students" in discipline else ""
+            students = students.split()
 
-        if value not in students:
-            students.append(value)
+            if value in students:
+                students.remove(value)
 
-        discipline_object["students"] = students
-        bytes_value = bytes(json.dumps(discipline_object), "utf-8")
+            students = " ".join(str(x) for x in students)
+            discipline["students"] = students
+
+        bytes_value = bytes(json.dumps(discipline), "utf-8")
 
         db.delete(bytes_key)
         db.put(bytes_key, bytes_value)
 
         db.close()
-        return True
 
-    def remove_teacher_from_discipline(self, key):
+    def detailed_discipline(self, key):
         db = plyvel.DB(self.database, create_if_missing=True)
 
         bytes_key = bytes(key, "utf-8")
-        discpline_bytes = db.get(bytes_key)
 
-        if not discpline_bytes:
-            db.close()
-            return False
+        discipline_bytes = db.get(bytes_key)
+        discipline = discipline_bytes.decode()
+        discipline = json.loads(discipline)
 
-        discipline_object = json.loads(discpline_bytes.decode())
-        discipline_object["teacher"] = None
-        bytes_value = bytes(json.dumps(discipline_object), "utf-8")
+        response = {}
 
-        db.delete(bytes_key)
-        db.put(bytes_key, bytes_value)
+        if "teacher" in discipline:
+            teacher_bytes = db.get(bytes(discipline["teacher"], "utf-8"))
+            teacher = teacher_bytes.decode()
+
+            response["teacher"] = json.loads(teacher)
+
+        if "students" in discipline:
+            st = discipline["students"].split()
+
+            if st:
+                students = []
+
+                for s in st:
+                    student_bytes = db.get(bytes(s, "utf-8"))
+                    student = student_bytes.decode()
+                    student = json.loads(student)
+
+                    students.append(student)
+
+                response["students"] = students
+
+        discipline.pop("teacher", None)
+        discipline.pop("students", None)
+        response["discipline"] = discipline
 
         db.close()
-        return True
-
-    def remove_student_at_discipline(self, key, value):
-        db = plyvel.DB(self.database, create_if_missing=True)
-
-        bytes_key = bytes(key, "utf-8")
-        discpline_bytes = db.get(bytes_key)
-
-        if not discpline_bytes:
-            return False
-
-        discipline_object = json.loads(discpline_bytes.decode())
-        students = (
-            discipline_object["students"] if discipline_object[""] is not None else []
-        )
-
-        if value not in students:
-            students.remove(value)
-
-        discipline_object["students"] = students
-        bytes_value = bytes(json.dumps(discipline_object), "utf-8")
-
-        db.delete(bytes_key)
-        db.put(bytes_key, bytes_value)
-
-        return True
+        return response
 
     def get_teacher_disciplines(self, key):
         db = plyvel.DB(self.database, create_if_missing=True)
@@ -204,44 +222,83 @@ class Database(SyncObj):
         response = []
 
         for k, v in db.iterator():
+            k = k.decode()
             aux = {}
 
-            if k.contains("sigla"):
+            if "sigla" in k:
                 v = v.decode()
                 v_object = json.loads(v)
 
                 v_aux = copy.deepcopy(v_object)
-                v_aux.remove("teacher")
-                v_aux.remove("students")
+                v_aux.pop("teacher", None)
+                v_aux.pop("students", None)
 
-                aux.add({"discipline": v_aux})
-                aux.add({"teacher": None})
-                aux.add({"students": []})
+                aux["discipline"] = v_aux
+                aux["teacher"] = None
+                aux["students"] = []
 
-                if v_object["teacher"] is not None and v_object["teacher"] == key:
+                if "teacher" in v_object and v_object["teacher"] == key:
                     bytes_key = bytes(key, "utf-8")
                     response_bytes = db.get(bytes_key)
 
                     if response_bytes:
                         teacher = response_bytes.decode()
-                        teacher_object = copy.deepcopy(json.loads(teacher))
+                        teacher_object = json.loads(teacher)
 
                         aux["teacher"] = teacher_object
 
-                    if v_object["students"] is not None:
+                    if "students" in v_object:
                         students_objects = []
 
-                        for s in v_object["students"]:
+                        for s in v_object["students"].split():
                             bytes_key = bytes(s, "utf-8")
                             response_bytes = db.get(bytes_key)
 
                             if response_bytes:
                                 student = response_bytes.decode()
-                                student_object = copy.deepcopy(json.loads(student))
+                                student_object = json.loads(student)
 
                                 students_objects.append(student_object)
 
                         aux["students"] = students_objects
+
+                response.append(aux)
+
+        db.close()
+        return response
+    
+    def get_student_disciplines(self, key):
+        db = plyvel.DB(self.database, create_if_missing=True)
+
+        response = []
+
+        for k, v in db.iterator():
+            k = k.decode()
+            aux = {}
+
+            if "sigla" in k:
+                v = v.decode()
+                v_object = json.loads(v)
+
+                v_aux = copy.deepcopy(v_object)
+                v_aux.pop("teacher", None)
+                v_aux.pop("students", None)
+
+                aux["discipline"] = v_aux
+                aux["teacher"] = None
+                aux["students"] = 0
+
+                if "students" in v_object and key in v_object["students"]:
+                    bytes_key = bytes(key, "utf-8")
+                    response_bytes = db.get(bytes_key)
+
+                    aux["students"] = len(v_object["students"].split())
+
+                    if "teacher" in v_object:
+                        teacher = response_bytes.decode()
+                        teacher_object = json.loads(teacher)
+
+                        aux["teacher"] = teacher_object
 
                 response.append(aux)
 

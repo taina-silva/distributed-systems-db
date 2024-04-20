@@ -51,7 +51,7 @@ class ServerService(object):
                 )
 
             def ObtemDisciplinasProfessor(self, identificador, _):
-                return ServerActions.ObtemDisciplinasEntidade(socketDB,
+                return ServerActions.ObtemDisciplinasProfessor(socketDB,
                     identificador, dicts, "ObtemDisciplinasProfessor"
                 )
 

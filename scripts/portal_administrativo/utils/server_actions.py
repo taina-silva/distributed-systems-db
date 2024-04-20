@@ -209,7 +209,7 @@ class ServerActions:
         chave = value_dict[tipo_chave_entidade_1]
 
         msg = json.dumps(
-            {"function": "delete", "key": f"{tipo_chave_entidade_1}-{chave}"}
+            {"function": "delete", "key": f"{tipo_chave_entidade_2}-{chave}"}
         )
 
         server_socket.send(msg.encode())
@@ -261,7 +261,7 @@ class ServerActions:
         response = json.loads(response.decode())
 
         if response.get("data") is not None:
-            data = json.loads(response.get("data"))
+            data = response.get("data")
             return ServerActions.__entidade_from_dict(data, dict_chave)
 
     @staticmethod
